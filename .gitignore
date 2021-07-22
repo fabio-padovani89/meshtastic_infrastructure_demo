@@ -1,0 +1,8 @@
+.vscode/
+!**/__pycache__/
+web/web_server/__pycache__/
+
+tileserver-gl/*.mbtiles
+
+docker-compose.yml
+main.sh

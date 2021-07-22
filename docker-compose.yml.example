@@ -1,0 +1,43 @@
+version: "3.3"
+services:
+  web:
+    container_name: "meshtastic_web"
+    build: ./web
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./web:/web-src
+
+  mongo:
+    container_name: "meshtastic_mongo"
+    image: "mongo:bionic"
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: password
+  
+  mosquitto:
+    container_name: "meshtastic_mosquitto"
+    image: eclipse-mosquitto
+    volumes:
+      - "./mosquitto:/mosquitto/"
+    restart: always
+    ports:
+      - "1883:1883"
+
+  tileserver:
+    container_name: "meshtastic_tileserver"
+    image: "maptiler/tileserver-gl"
+    volumes:
+      - "./tileserver-gl:/data/"
+    ports:
+      - "8080:80"
+
+  frontend:
+    container_name: "meshtastic_frontend"
+    build: ./frontend
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./frontend-src:/usr/src/app

@@ -1,0 +1,20 @@
+export LOG_LEVEL=DEBUG
+
+# FLASK
+export FLASK_APP=web_server
+export FLASK_ENV=production
+export FLASK_RUN_PORT=8000
+
+# MONGO
+export MONGO_URL=mongodb://localhost:27017/
+export MONGO_DATABASE=nodes_tracker
+export MONGO_COLLECTION=nodes
+export MONGO_USERNAME=root
+export MONGO_PASSWORD=password
+export MONGO_NODES_EXPIRE_SECONDS=604800 # 7 days -> 60 * 60 * 24 * 7
+
+# MQTT
+export MQTT_HOST=localhost
+export MQTT_IN_TOPIC=input_data
+
+flask run
