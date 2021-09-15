@@ -37,8 +37,35 @@ def store_nodes_info(data):
         
         MONGO_COLLECTION.insert_many(data)
 
-def get_nodes_info():
-    res = list(MONGO_COLLECTION.aggregate([
+def get_nodes_info(user=None, dt_from=None, dt_to=None):
+    pipeline = []
+
+    if user is not None:
+        pipeline.append({
+            '$match': {
+                'user.longName': user
+            }
+        })
+
+    if dt_from is not None:
+        pipeline.append({
+            '$match': {
+                'relevation_time': {
+                    "$gte" : dt_from
+                }
+            }
+        })
+
+    if dt_to is not None:
+        pipeline.append({
+            '$match': {
+                'relevation_time': {
+                    "$lte" : dt_to
+                }
+            }
+        })
+
+    pipeline += [
         {
             '$sort': {
                 'user.longName': 1,
@@ -57,7 +84,9 @@ def get_nodes_info():
                 'relevation_time': {'$first': '$relevation_time'},
             }
         }
-    ]))
+    ]
+
+    res = list(MONGO_COLLECTION.aggregate(pipeline))
 
     for x in res:
         x['relevation_time'] = x['relevation_time'].isoformat()
