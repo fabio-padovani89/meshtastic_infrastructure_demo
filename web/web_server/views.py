@@ -1,11 +1,12 @@
 from datetime import datetime
+from urllib.parse import unquote
 from flask import jsonify, request
 from web_server import app
 
 from .db_interface import get_nodes_info
 
 def resp(body, status=200):
-    return (jsonify(body) if body else jsonify({})), status
+    return jsonify(body), status
 
 
 def err_resp(body, status=422):
@@ -28,7 +29,7 @@ def nodes():
         if not val:
             continue
         try:
-            filters[key] = datetime.fromisoformat(val)
+            filters[key] = datetime.fromisoformat(unquote(val))
         except ValueError:
             return err_resp({key: 'invalid'})
 
@@ -40,7 +41,7 @@ def nodes():
         key = filt[0]
         val = request.args.get(filt[1])
         if val:
-            filters[key] = val
+            filters[key] = unquote(val)
 
     data = get_nodes_info(**filters)
     return resp(data)
