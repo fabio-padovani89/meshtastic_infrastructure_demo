@@ -1,5 +1,6 @@
 <script>
 	import { onMount } from 'svelte';
+	import queryString from 'query-string';
 	import Leaflet from 'leaflet'
 	import conf from './conf';
 
@@ -13,7 +14,13 @@
 	const apiReqData = {
 		host: conf.api.host,
     port: conf.api.port,
-    protocol: conf.api.protocol
+    protocol: conf.api.protocol,
+	}
+
+	const apiReqFilters = {
+		user: null,
+		'dt-from': null,
+		'dt-to': null,
 	}
 
 	const mapReqData = {
@@ -22,19 +29,21 @@
     protocol: conf.map.protocol
 	}
 
-	const buildUrl = (protocol, host, port, path) => {
-		return `${protocol}://${host}:${port}${path}`
+	const buildUrl = (protocol, host, port, path, filters) => {
+		const qs = queryString.stringify(filters);
+		return `${protocol}://${host}:${port}${path}?${qs}`
 	}
 
 	const getNodesInfo = async () => {
-		const response = await fetch(
-			buildUrl(
-				apiReqData.protocol,
-				apiReqData.host,
-				apiReqData.port,
-				conf.api.getNodesInfo.path,
-			)
+		const url = buildUrl(
+			apiReqData.protocol,
+			apiReqData.host,
+			apiReqData.port,
+			conf.api.getNodesInfo.path,
+			apiReqFilters,
 		)
+
+		const response = await fetch(url)
     nodesInfo = await response.json()
 
 		mapMarkers.forEach((x) => {
@@ -42,12 +51,14 @@
 		})
 		mapMarkers = []
 		
-		nodesInfo.forEach(node => {
-			const marker = Leaflet.marker([node.position.latitude, node.position.longitude])
-			marker.bindPopup(JSON.stringify(node)).openPopup()
-			mapMarkers.push(marker)
-			marker.addTo(map)
-		})
+		if (nodesInfo) {
+			nodesInfo.forEach(node => {
+				const marker = Leaflet.marker([node.position.latitude, node.position.longitude])
+				marker.bindPopup(JSON.stringify(node)).openPopup()
+				mapMarkers.push(marker)
+				marker.addTo(map)
+			})
+		}
 	}
 
 	const initTileLayer = () => {
@@ -55,7 +66,7 @@
 			mapTileLayer.removeFrom(map)
 		}
 
-		console.log(mapReqData)
+		// console.log(mapReqData)
 
 		mapTileLayer = Leaflet.tileLayer(
 			buildUrl(
@@ -88,68 +99,148 @@
 	
 </script>
 
-<div
-	class="map"
-	bind:this={mapContainer}
-></div>
+<div class="container">
 
-<div>
-	<h3>Web server connection data</h3>
+	<div class="row">
+		<div class="column">
+			<div
+				class="map"
+				bind:this={mapContainer}
+			></div>
+		</div>
+	</div>
 
-	<label>
-		protocol
-		<select bind:value={apiReqData.protocol}>
-			<option value="http">http</option>
-			<option value="https">https</option>
-		</select>
-	</label>
+	<hr/>
+	
+	<div class="row">
+		<div class="column">
+			<h3>Connection data</h3>
+		</div>
+	</div>
+	
+	<div class="row">
+		<div class="column">
+			<h4>Web server</h4>
+			<label>
+				protocol
+				<select bind:value={apiReqData.protocol}>
+					<option value="http">http</option>
+					<option value="https">https</option>
+				</select>
+			</label>
+		
+			<label>
+				host
+				<input bind:value={apiReqData.host} />
+			</label>
+		
+			<label>
+				port
+				<input bind:value={apiReqData.port} type="number" />
+			</label>
+		</div>
+			
+		<div class="column">
+			<h4>Map server</h4>
+			<label>
+				protocol
+				<select bind:value={mapReqData.protocol} on:blur={initTileLayer}>
+					<option value="http">http</option>
+					<option value="https">https</option>
+				</select>
+			</label>
+		
+			<label>
+				host
+				<input bind:value={mapReqData.host} on:change={initTileLayer} />
+			</label>
+		
+			<label>
+				port
+				<input bind:value={mapReqData.port} type="number" on:change={initTileLayer} />
+			</label>
+		</div>
+	</div>
+	
+	<hr/>
 
-	<label>
-		host
-		<input bind:value={apiReqData.host} />
-	</label>
+	<div class="row">
+		<div class="column">
+			<h3>Filters</h3>
+		</div>
+	</div>
 
-	<label>
-		port
-		<input bind:value={apiReqData.port} type="number" />
-	</label>
+	<div class="row">
+		<div class="column column-50">
+			<label>
+				user
+				<input bind:value={apiReqFilters.user} type="text" />
+			</label>
+
+			<label>
+				Relevation time from
+				<input bind:value={apiReqFilters['dt-from']} type="text" />
+			</label>
+
+			<label>
+				Relevation time to
+				<input bind:value={apiReqFilters['dt-to']} type="text" />
+			</label>
+		</div>
+	</div>
+	
+	<div class="row">
+		<div class="column">
+			<button on:click={getNodesInfo}>
+				Get Nodes info
+			</button>
+		</div>
+	</div>
+	
+	<hr/>
+
+	<div class="row">
+		<div class="column">
+			<h3>Nodes list</h3>
+		</div>
+	</div>
+
+	<div class="row">
+		<div class="column">
+			<table>
+				<thead>
+					<tr>
+						<th>ID</th>
+						<th>RELEVATION TIME</th>
+						<th>LAT</th>
+						<th>LON</th>
+						<th>BATTERY LEVEL</th>
+					</tr>
+				</thead>
+			
+				<tbody>
+					{#if nodesInfo.length}
+						{#each nodesInfo as node}
+							<tr>
+								<td>{node._id}</td>
+								<td>{node.relevation_time}</td>
+								<td>{node.position.latitude}</td>
+								<td>{node.position.longitude}</td>
+								<td>{node.batteryLevel}</td>
+							</tr>
+						{/each}
+					{:else}
+						<tr>
+							<td colspan="5">No data available</td>
+						</tr>
+					{/if}
+				</tbody>
+			</table>
+		</div>
+	</div>
+
 </div>
 
-<div>
-	<h3>Map server connection data</h3>
-
-	<label>
-		protocol
-		<select bind:value={mapReqData.protocol} on:blur={initTileLayer}>
-			<option value="http">http</option>
-			<option value="https">https</option>
-		</select>
-	</label>
-
-	<label>
-		host
-		<input bind:value={mapReqData.host} on:change={initTileLayer} />
-	</label>
-
-	<label>
-		port
-		<input bind:value={mapReqData.port} type="number" on:change={initTileLayer} />
-	</label>
-</div>
-
-<div>
-	<button on:click={getNodesInfo}>
-		Get Nodes info
-	</button>
-</div>
-
-<ul>
-	{#each nodesInfo as node, i}
-		<li>
-			{JSON.stringify(node)}
-		</li>
-	{/each}
-</ul>
 
 <style>
 	.map {
