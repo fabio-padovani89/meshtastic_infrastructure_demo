@@ -33,8 +33,8 @@
 
 	const apiReqFilters = {
 		user: null,
-		'dt-from': null,
-		'dt-to': null,
+		'dt-from': moment().subtract(7, 'd').toDate(),
+		'dt-to': new Date(),
 	}
 
 	const mapReqData = {
@@ -78,8 +78,26 @@
 		mapMarkers = []
 		
 		if (nodesInfo) {
+			let opacity = 1
+			let rangeHoursDiff = null
+			let momentTo = null
+
+			if (apiReqFilters['dt-from'] && apiReqFilters['dt-to']) {
+				momentTo = moment(apiReqFilters['dt-to'])
+				rangeHoursDiff = Math.round(momentTo.diff(moment(apiReqFilters['dt-from']), 'hours', true))
+			}
+
 			nodesInfo.forEach(node => {
+				opacity = 1
+				let momentRelevationTime = (node.relevation_time) ? moment(node.relevation_time) : null
+
+				if (momentRelevationTime && momentTo && momentRelevationTime < momentTo) {
+					const nodeHoursDiff = Math.round(momentTo.diff(momentRelevationTime, 'hours', true))
+					opacity = (rangeHoursDiff - nodeHoursDiff) / rangeHoursDiff
+				}
+
 				const marker = Leaflet.marker([node.position.latitude, node.position.longitude])
+				marker.setOpacity(opacity);
 				marker.bindPopup(JSON.stringify(node)).openPopup()
 				mapMarkers.push(marker)
 				marker.addTo(map)
