@@ -104,7 +104,10 @@
 
 				const marker = Leaflet.marker([node.position.latitude, node.position.longitude])
 				marker.setOpacity(opacity);
-				marker.bindPopup(JSON.stringify(node)).openPopup()
+				marker.bindPopup(
+					`<pre>${JSON.stringify(node, null, 4)}</pre>`,
+					{maxWidth: 500}
+				).openPopup()
 				mapMarkers.push(marker)
 				marker.addTo(map)
 			})

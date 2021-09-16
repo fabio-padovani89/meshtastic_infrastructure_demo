@@ -211,7 +211,7 @@ code {
 
 pre {
     background: #f4f5f6;
-    border-left: 0.3rem solid var(--main-color);
+    /* border-left: 0.3rem solid var(--main-color); */
     overflow-y: hidden;
 }
 
