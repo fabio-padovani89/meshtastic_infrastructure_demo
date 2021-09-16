@@ -26,22 +26,24 @@
 		interval: null,
 	}
 
+	const apiReqFilters = {
+		user: null,
+		'dt-from': moment().subtract(7, 'd').toDate(),
+		'dt-to': new Date(),
+	}
+
 	const flatpickrOptions = {
 		enableTime: true,
 		locale: flatpickrIt,
+		minDate: new Date().fp_incr(-7),
+		maxDate: new Date(),
 	}
 
 	const apiReqData = {
 		host: conf.api.host,
     port: conf.api.port,
     protocol: conf.api.protocol,
-	}
-
-	const apiReqFilters = {
-		user: null,
-		'dt-from': moment().subtract(7, 'd').toDate(),
-		'dt-to': new Date(),
-	}
+	}	
 
 	const mapReqData = {
 		host: conf.map.host,
