@@ -5,7 +5,7 @@ export default {
     protocol: 'http',
     getNodesInfo: {
       path: '/nodes/',
-      interval: 5000
+      interval: 5 // in seconds
     }
   },
   map: {
@@ -14,7 +14,7 @@ export default {
     protocol: 'http',
     initCoordinates: {
       lat: 45.494643,
-	    lon: 10.938749
+      lon: 10.938749
     },
     initZoom: 10,
     tileLayer: {

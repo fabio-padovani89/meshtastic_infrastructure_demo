@@ -1,8 +1,11 @@
 <script>
 	import { onMount } from 'svelte';
+	import moment from 'moment';
 	import queryString from 'query-string';
 	import Leaflet from 'leaflet'
 	import conf from './conf';
+	import Flatpickr from './components/Flatpickr.svelte';
+	import { Italian as flatpickrIt } from "flatpickr/dist/l10n/it"
 
 	let map
 	let mapContainer
@@ -10,6 +13,17 @@
 
 	let nodesInfo = []
 	let mapMarkers = []
+
+	let autoRefreshData = {
+		enabled: true,
+		seconds: conf.api.getNodesInfo.interval,
+		interval: null,
+	}
+
+	const flatpickrOptions = {
+		enableTime: true,
+		locale: flatpickrIt,
+	}
 
 	const apiReqData = {
 		host: conf.api.host,
@@ -30,7 +44,19 @@
 	}
 
 	const buildUrl = (protocol, host, port, path, filters) => {
-		const qs = queryString.stringify(filters);
+		const qsFilters = {}
+		if (filters) {
+			for (const [key, value] of Object.entries(filters)) {
+				if (value) {
+					if (value instanceof Date) {
+						qsFilters[key] = moment(value).format()
+					} else {
+						qsFilters[key] = value
+					}
+				}
+			}
+		}
+		const qs = queryString.stringify(qsFilters);
 		return `${protocol}://${host}:${port}${path}?${qs}`
 	}
 
@@ -83,6 +109,15 @@
 		mapTileLayer.addTo(map)
 	}
 
+	const setAutoRefresh = () => {
+		clearInterval(autoRefreshData.interval)
+		if (autoRefreshData.enabled) {
+			autoRefreshData.interval = setInterval(() => {
+			getNodesInfo()
+		}, autoRefreshData.seconds * 1000)
+		}
+	}
+
 	onMount(() => {
 		map = Leaflet.map(mapContainer).setView([
 			conf.map.initCoordinates.lat,
@@ -92,9 +127,8 @@
 		initTileLayer()
 
 		getNodesInfo()
-		setInterval(() => {
-			getNodesInfo()
-		}, conf.api.getNodesInfo.interval)
+
+		setAutoRefresh()
 	})
 	
 </script>
@@ -107,6 +141,24 @@
 				class="map"
 				bind:this={mapContainer}
 			></div>
+		</div>
+	</div>
+
+	<div class="row">
+		<div class="column column-20">
+			<button on:click={getNodesInfo}>
+				Refresh data
+			</button>
+
+			<label>
+				<input type=checkbox bind:checked={autoRefreshData.enabled} on:change={() => { setAutoRefresh() }} />
+				Autorefresh
+			</label>
+
+			<label>
+				Seconds
+				<input bind:value={autoRefreshData.seconds} type="number" on:change={() => { setAutoRefresh() }} />
+			</label>
 		</div>
 	</div>
 
@@ -177,23 +229,15 @@
 				<input bind:value={apiReqFilters.user} type="text" />
 			</label>
 
-			<label>
-				Relevation time from
-				<input bind:value={apiReqFilters['dt-from']} type="text" />
+			<label for="dt-from">
+				Relevation time - from
+				<Flatpickr options={flatpickrOptions} bind:value={apiReqFilters['dt-from']} />
 			</label>
-
-			<label>
-				Relevation time to
-				<input bind:value={apiReqFilters['dt-to']} type="text" />
+			
+			<label for="dt-to">
+				Relevation time - to
+				<Flatpickr options={flatpickrOptions} bind:value={apiReqFilters['dt-to']} />
 			</label>
-		</div>
-	</div>
-	
-	<div class="row">
-		<div class="column">
-			<button on:click={getNodesInfo}>
-				Get Nodes info
-			</button>
 		</div>
 	</div>
 	
@@ -240,11 +284,3 @@
 	</div>
 
 </div>
-
-
-<style>
-	.map {
-		width: 100%;
-		height: 70vh;
-	}
-</style>
