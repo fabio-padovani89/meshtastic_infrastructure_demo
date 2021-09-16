@@ -179,6 +179,27 @@ input[type='submit'].button-clear[disabled]:hover {
     color: var(--main-color);
 }
 
+.button.button-inline,
+button.button-inline,
+input[type='button'].button-inline,
+input[type='reset'].button-inline,
+input[type='submit'].button-inline {
+    display: inline;
+}
+
+.button.button-small,
+button.button-small,
+input[type='button'].button-small,
+input[type='reset'].button-small,
+input[type='submit'].button-small {
+    font-size: 1rem;
+    height: 2.5rem;
+    letter-spacing: .1rem;
+    line-height: 2.0rem;
+    padding: 0 1rem;
+}
+
+
 code {
     background: #f4f5f6;
     border-radius: .4rem;

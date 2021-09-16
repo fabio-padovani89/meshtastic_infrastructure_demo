@@ -14,7 +14,13 @@
 	let nodesInfo = []
 	let mapMarkers = []
 
-	let autoRefreshData = {
+	const showSections = {
+		connectionData: true,
+		filters: true,
+		nodesTable: true,
+	}
+
+	const autoRefreshData = {
 		enabled: true,
 		seconds: conf.api.getNodesInfo.interval,
 		interval: null,
@@ -184,10 +190,16 @@
 	
 	<div class="row">
 		<div class="column">
-			<h3>Connection data</h3>
+			<h3>
+				Connection data
+				<button class="button button-inline button-small button-outline" on:click={() => { showSections.connectionData = !showSections.connectionData }}>
+					Show / Hide
+				</button>
+			</h3>
 		</div>
 	</div>
 	
+	{#if showSections.connectionData}
 	<div class="row">
 		<div class="column">
 			<h4>Web server</h4>
@@ -231,15 +243,23 @@
 			</label>
 		</div>
 	</div>
+	{/if}
 	
 	<hr/>
 
+	
 	<div class="row">
 		<div class="column">
-			<h3>Filters</h3>
+			<h3>
+				Filters
+				<button class="button button-inline button-small button-outline" on:click={() => { showSections.filters = !showSections.filters }}>
+					Show / Hide
+				</button>
+			</h3>
 		</div>
 	</div>
 
+	{#if showSections.filters}
 	<div class="row">
 		<div class="column column-50">
 			<label>
@@ -258,15 +278,22 @@
 			</label>
 		</div>
 	</div>
+	{/if}
 	
 	<hr/>
 
 	<div class="row">
 		<div class="column">
-			<h3>Nodes list</h3>
+			<h3>
+				Nodes list
+				<button class="button button-inline button-small button-outline" on:click={() => { showSections.nodesTable = !showSections.nodesTable }}>
+					Show / Hide
+				</button>
+			</h3>
 		</div>
 	</div>
 
+	{#if showSections.nodesTable}
 	<div class="row">
 		<div class="column">
 			<table>
@@ -300,5 +327,6 @@
 			</table>
 		</div>
 	</div>
+	{/if}
 
 </div>
