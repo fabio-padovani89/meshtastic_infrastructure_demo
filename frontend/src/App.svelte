@@ -27,8 +27,8 @@
 	let currentView = viewOptions.NODES
 
 	const showSections = {
-		connectionData: true,
-		filters: true,
+		connectionData: false,
+		filters: false,
 		nodesTable: true,
 	}
 
