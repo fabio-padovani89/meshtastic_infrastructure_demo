@@ -4,8 +4,11 @@ export default {
     port: 8000,
     protocol: 'http',
     getNodesInfo: {
-      path: '/nodes/',
-      interval: 5 // in seconds
+      path: '/api/v1/nodes/',
+      interval: 30 // in seconds
+    },
+    getNodePath: {
+      path: '/api/v1/nodes/<%= user %>/path/',
     }
   },
   map: {

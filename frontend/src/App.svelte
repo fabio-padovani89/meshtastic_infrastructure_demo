@@ -1,10 +1,12 @@
 <script>
 	import { onMount } from 'svelte';
+	import { template } from 'lodash';
 	import moment from 'moment';
 	import queryString from 'query-string';
 	import Leaflet from 'leaflet'
 	import conf from './conf';
 	import Flatpickr from './components/Flatpickr.svelte';
+	import NodesTable from './components/NodesTable.svelte';
 	import { Italian as flatpickrIt } from "flatpickr/dist/l10n/it"
 
 	let map
@@ -13,6 +15,16 @@
 
 	let nodesInfo = []
 	let mapMarkers = []
+	let mapPolyline = []
+	let mapPolylineGroup = []
+
+	let selectedNode = null
+
+	const viewOptions = {
+		NODES: 'Nodes',
+		NODE_PATH: 'Node path',
+	}
+	let currentView = viewOptions.NODES
 
 	const showSections = {
 		connectionData: true,
@@ -68,7 +80,24 @@
 		return `${protocol}://${host}:${port}${path}?${qs}`
 	}
 
+	const cleanMap = () => {
+		if (mapMarkers.length) {
+			mapMarkers.forEach((x) => {
+				x.removeFrom(map)
+			})
+			mapMarkers = []
+		}
+
+		if (mapPolyline) {
+			map.removeLayer(mapPolylineGroup)
+			mapPolylineGroup = null
+			mapPolyline = null
+		}
+	}
+
 	const getNodesInfo = async () => {
+		if (currentView !== viewOptions.NODES) return
+
 		const url = buildUrl(
 			apiReqData.protocol,
 			apiReqData.host,
@@ -80,10 +109,7 @@
 		const response = await fetch(url)
     nodesInfo = await response.json()
 
-		mapMarkers.forEach((x) => {
-			x.removeFrom(map)
-		})
-		mapMarkers = []
+		cleanMap()
 		
 		if (nodesInfo) {
 			let opacity = 1
@@ -116,6 +142,29 @@
 		}
 	}
 
+	const getNodePath = async () => {
+		if (currentView !== viewOptions.NODE_PATH) return
+
+		const url = buildUrl(
+			apiReqData.protocol,
+			apiReqData.host,
+			apiReqData.port,
+			template(conf.api.getNodePath.path)({ user: selectedNode }),
+			apiReqFilters,
+		)
+
+		const response = await fetch(url)
+    const latlngs = (await response.json()).map(x => [x.lat, x.lon])
+		cleanMap()
+
+		mapPolyline = Leaflet.polyline(latlngs, {color: 'red'}).addTo(map)
+		mapPolylineGroup = L.layerGroup().addLayer(mapPolyline).addTo(map)
+
+		const marker = Leaflet.marker(latlngs.at(-1))
+		mapMarkers.push(marker)
+		marker.addTo(map)
+	}
+
 	const initTileLayer = () => {
 		if (mapTileLayer) {
 			mapTileLayer.removeFrom(map)
@@ -142,9 +191,26 @@
 		clearInterval(autoRefreshData.interval)
 		if (autoRefreshData.enabled) {
 			autoRefreshData.interval = setInterval(() => {
-			getNodesInfo()
+			refreshData()
 		}, autoRefreshData.seconds * 1000)
 		}
+	}
+
+	const refreshData = (opts) => {
+		switch (currentView) {
+			case viewOptions.NODES:
+				selectedNode = null
+				getNodesInfo()
+			case viewOptions.NODE_PATH:
+				if (opts) selectedNode = opts
+				getNodePath()
+		}
+	}
+
+
+	const setView = (view, opts) => {
+		currentView = view
+		refreshData(opts)
 	}
 
 	onMount(() => {
@@ -155,7 +221,7 @@
 
 		initTileLayer()
 
-		getNodesInfo()
+		refreshData()
 
 		setAutoRefresh()
 	})
@@ -163,6 +229,23 @@
 </script>
 
 <div class="container">
+
+	<div class="row">
+		<div class="column">
+			<h2>
+				Current view: <strong>{currentView}</strong>
+				{#if selectedNode}
+				- {selectedNode}
+				{/if}
+				
+			</h2>
+			{#if currentView !== viewOptions.NODES}
+			<button class="button button-inline button-small button-outline" on:click={() => { setView(viewOptions.NODES) }}>
+				Switch to Nodes view
+			</button>
+			{/if}
+		</div>
+	</div>
 
 	<div class="row">
 		<div class="column">
@@ -175,7 +258,7 @@
 
 	<div class="row">
 		<div class="column column-20">
-			<button on:click={getNodesInfo}>
+			<button on:click={() => refreshData()}>
 				Refresh data
 			</button>
 
@@ -197,10 +280,10 @@
 		<div class="column">
 			<h3>
 				Connection data
-				<button class="button button-inline button-small button-outline" on:click={() => { showSections.connectionData = !showSections.connectionData }}>
-					Show / Hide
-				</button>
 			</h3>
+			<button class="button button-inline button-small button-outline" on:click={() => { showSections.connectionData = !showSections.connectionData }}>
+				Show / Hide
+			</button>
 		</div>
 	</div>
 	
@@ -257,10 +340,10 @@
 		<div class="column">
 			<h3>
 				Filters
-				<button class="button button-inline button-small button-outline" on:click={() => { showSections.filters = !showSections.filters }}>
-					Show / Hide
-				</button>
 			</h3>
+			<button class="button button-inline button-small button-outline" on:click={() => { showSections.filters = !showSections.filters }}>
+				Show / Hide
+			</button>
 		</div>
 	</div>
 
@@ -291,47 +374,15 @@
 		<div class="column">
 			<h3>
 				Nodes list
-				<button class="button button-inline button-small button-outline" on:click={() => { showSections.nodesTable = !showSections.nodesTable }}>
-					Show / Hide
-				</button>
 			</h3>
+			<button class="button button-inline button-small button-outline" on:click={() => { showSections.nodesTable = !showSections.nodesTable }}>
+				Show / Hide
+			</button>
 		</div>
 	</div>
 
 	{#if showSections.nodesTable}
-	<div class="row">
-		<div class="column">
-			<table>
-				<thead>
-					<tr>
-						<th>ID</th>
-						<th>RELEVATION TIME</th>
-						<th>LAT</th>
-						<th>LON</th>
-						<th>BATTERY LEVEL</th>
-					</tr>
-				</thead>
-			
-				<tbody>
-					{#if nodesInfo.length}
-						{#each nodesInfo as node}
-							<tr>
-								<td>{node._id}</td>
-								<td>{node.relevation_time}</td>
-								<td>{node.position.latitude}</td>
-								<td>{node.position.longitude}</td>
-								<td>{node.batteryLevel}</td>
-							</tr>
-						{/each}
-					{:else}
-						<tr>
-							<td colspan="5">No data available</td>
-						</tr>
-					{/if}
-				</tbody>
-			</table>
-		</div>
-	</div>
+	<NodesTable nodes={nodesInfo} on:show-path={x => setView(viewOptions.NODE_PATH, x.detail.user)}/>
 	{/if}
 
 </div>
