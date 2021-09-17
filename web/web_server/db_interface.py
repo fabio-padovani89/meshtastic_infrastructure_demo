@@ -2,6 +2,7 @@ import atexit
 
 from datetime import datetime
 from os import environ
+import re
 
 import pymongo
 
@@ -41,9 +42,10 @@ def get_nodes_info(user=None, dt_from=None, dt_to=None):
     pipeline = []
 
     if user is not None:
+        regx = re.compile(user, re.IGNORECASE)
         pipeline.append({
             '$match': {
-                'user.longName': user
+                'user.longName': regx
             }
         })
 
@@ -95,6 +97,66 @@ def get_nodes_info(user=None, dt_from=None, dt_to=None):
             x['position']['time'] = datetime.fromtimestamp(x['position']['time']).isoformat()
         
     return res
+
+def get_node_path(user, dt_from=None, dt_to=None):
+    pipeline = [{
+        '$match': {
+            'user.longName': user,
+            'position.latitude': {'$exists': True},
+            'position.latitude': {'$ne': None},
+            'position.longitude': {'$exists': True},
+            'position.longitude': {'$ne': None},
+            'relevation_time': {'$exists': True},
+            'relevation_time': {'$ne': None},
+        }
+    }]
+
+    if dt_from is not None:
+        pipeline.append({
+            '$match': {
+                'relevation_time': {
+                    "$gte" : dt_from
+                }
+            }
+        })
+
+    if dt_to is not None:
+        pipeline.append({
+            '$match': {
+                'relevation_time': {
+                    "$lte" : dt_to
+                }
+            }
+        })
+
+    pipeline += [
+        {
+            '$sort': {
+                'relevation_time': 1,
+                
+            }
+        },
+        { 
+            '$project': {
+                '_id': 0,
+                'relevation_time': 1,
+                'position.latitude': 1,
+                'position.longitude': 1,
+            }
+        }
+    ]
+    
+    return list(
+        map(
+            lambda x: {
+                'lat': x['position']['latitude'],
+                'lon': x['position']['longitude'],
+                'time': x['relevation_time'].isoformat(),
+            },
+            MONGO_COLLECTION.aggregate(pipeline)
+        )
+    )
+
 
 def exit_procedure():
     MONGO_CLIENT.close()
