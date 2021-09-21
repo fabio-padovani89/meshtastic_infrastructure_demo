@@ -5,6 +5,7 @@
 	import queryString from 'query-string';
 	import Leaflet from 'leaflet'
 	import conf from './conf';
+	import { getApiReqData, getMapReqData, setApiReqData, setMapReqData, resetApiReqData, resetMapReqData } from './storage';
 	import Flatpickr from './components/Flatpickr.svelte';
 	import NodesTable from './components/NodesTable.svelte';
 	import { Italian as flatpickrIt } from "flatpickr/dist/l10n/it"
@@ -51,16 +52,35 @@
 		maxDate: new Date(),
 	}
 
-	const apiReqData = {
-		host: conf.api.host,
-    port: conf.api.port,
-    protocol: conf.api.protocol,
-	}	
+	let apiReqData = getApiReqData()
+	let mapReqData = getMapReqData()
 
-	const mapReqData = {
-		host: conf.map.host,
-    port: conf.map.port,
-    protocol: conf.map.protocol
+	const apiReqDataChanged = () => {
+		setApiReqData({
+			protocol: apiReqData.protocol,
+			host: apiReqData.host,
+			port: apiReqData.port,
+		})
+	}
+	
+	const mapReqDataChanged = () => {
+		setMapReqData({
+			protocol: mapReqData.protocol,
+			host: mapReqData.host,
+			port: mapReqData.port,
+		})
+		initTileLayer()
+	}
+	
+	const rstApiReqData = () => {
+		resetApiReqData()
+		apiReqData = getApiReqData()
+	}
+	
+	const rstMapReqData = () => {
+		resetMapReqData()
+		mapReqData = getMapReqData()
+		initTileLayer()
 	}
 
 	const buildUrl = (protocol, host, port, path, filters) => {
@@ -293,7 +313,7 @@
 			<h4>Web server</h4>
 			<label>
 				protocol
-				<select bind:value={apiReqData.protocol}>
+				<select bind:value={apiReqData.protocol} on:blur={apiReqDataChanged}>
 					<option value="http">http</option>
 					<option value="https">https</option>
 				</select>
@@ -301,20 +321,24 @@
 		
 			<label>
 				host
-				<input bind:value={apiReqData.host} />
+				<input bind:value={apiReqData.host}  on:change={apiReqDataChanged}/>
 			</label>
 		
 			<label>
 				port
-				<input bind:value={apiReqData.port} type="number" />
+				<input bind:value={apiReqData.port} type="number" on:change={apiReqDataChanged}/>
 			</label>
+
+			<button class="button button-small button-outline" on:click={rstApiReqData}>
+				Reset
+			</button>
 		</div>
 			
 		<div class="column">
 			<h4>Map server</h4>
 			<label>
 				protocol
-				<select bind:value={mapReqData.protocol} on:blur={initTileLayer}>
+				<select bind:value={mapReqData.protocol} on:blur={mapReqDataChanged}>
 					<option value="http">http</option>
 					<option value="https">https</option>
 				</select>
@@ -322,13 +346,17 @@
 		
 			<label>
 				host
-				<input bind:value={mapReqData.host} on:change={initTileLayer} />
+				<input bind:value={mapReqData.host} on:change={mapReqDataChanged} />
 			</label>
 		
 			<label>
 				port
-				<input bind:value={mapReqData.port} type="number" on:change={initTileLayer} />
+				<input bind:value={mapReqData.port} type="number" on:change={mapReqDataChanged} />
 			</label>
+
+			<button class="button button-small button-outline" on:click={rstMapReqData}>
+				Reset
+			</button>
 		</div>
 	</div>
 	{/if}
